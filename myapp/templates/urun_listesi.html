@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+
+{% block content %}
+{% load static %}
+<link rel="stylesheet" href="{% static 'styles/urun_listesi.css' %}">
+<div class="container">
+    <h1>Ürün Listesi</h1>
+
+    <!-- Arama Formu -->
+    <form method="get" action="{% url 'urun_listesi' %}">
+        <input type="text" name="search" placeholder="Barkod veya Ürün Adı ile Ara" value="{{ request.GET.search }}">
+        <button type="submit">Ara</button>
+    </form>
+
+    <div class="table">
+        <table id="productTable">
+            <thead>
+                <tr>
+                    <th>Barkod</th>
+                    <th>Ürün Adı</th>
+                    <th>Boyut</th>
+                    <th>Ürün Adedi</th>
+                    <th>Alış Fiyatı</th>
+                    <th>Satış Fiyatı</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in items %}
+                <tr class="{% if item.quantity == 0 %}noneItem{% else %} {% endif %}">
+                    <td>{{ item.barcode }}</td>
+                    <td>{{ item.name }}</td>
+                    <td>{{ item.size }}</td>
+                    <td>
+                        {% if item.quantity %}
+                            {{ item.quantity }}
+                        {% else %}
+                            0
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if item.buy_price %}
+                            {{ item.buy_price }} TL
+                        {% else %}
+                            0 TL
+                        {% endif %}
+                    </td>
+                    <td>{{ item.sell_price }} TL</td>
+                    <td><a class="action_btn" href="{% url 'urun_edit' item.id %}">Düzenle</a></td>
+                    <td><a class="action_btn" href="{% url 'delete_item' item.id %}">Ürünü Sil</a></td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="7">Ürün bulunamadı.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

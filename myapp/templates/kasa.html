@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+
+{% block content %}
+{% load static %}
+<link rel="stylesheet" href="{% static 'styles/kasa.css' %}">
+<div class="container">
+    <div class="space"></div>
+    
+    <h1>Kasa İşlemleri</h1>
+
+    <div class="space"></div>
+
+    <!-- Satış Ekleme -->
+    <h2>Satış Yap</h2>
+    <form method="post" id="saleForm" action="{% url 'process_sale' %}">
+        {% csrf_token %}
+        <div id="salesContainer">
+            <div class="saleItem">
+                <label for="barcode">Barkod:</label>
+                <input type="text" name="barcodes[]" placeholder="Barkod" required>
+                <label for="quantity">Miktar:</label>
+                <input type="number" name="quantities[]" placeholder="Miktar" required>
+                <label for="payment_method">Ödeme Yöntemi:</label>
+                <select name="payment_methods[]">
+                    <option value="cash">Nakit</option>
+                    <option value="credit_card">Kredi Kartı</option>
+                </select>
+                <button type="button" class="removeSaleItem">Sil</button>
+            </div>
+        </div>
+        <button type="button" id="addSaleItem">Başka Ürün Ekle</button>
+        <button type="submit">Satış Yap</button>
+    </form>
+
+    <div class="space"></div>
+
+    <!-- Satışlar kısmı -->
+    <div id="messages">
+        {% if messages %}
+            <div id="messageContainer">
+                {% for message in messages %}
+                    <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+                {% endfor %}
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        var form = document.getElementById('saleForm');
+        var submitButton = form.querySelector('button[type="submit"]');
+
+        form.addEventListener('submit', function(event) {
+            if (submitButton.dataset.submitted === 'true') {
+                event.preventDefault();
+                return;
+            }
+
+            submitButton.dataset.submitted = 'true';
+            submitButton.disabled = true;
+
+            setTimeout(function() {
+                submitButton.disabled = false;
+            }, 1000);
+        });
+
+        document.getElementById('addSaleItem').addEventListener('click', function() {
+            var container = document.getElementById('salesContainer');
+            var newItem = document.createElement('div');
+            newItem.className = 'saleItem';
+            newItem.innerHTML = `
+                <label for="barcode">Barkod:</label>
+                <input type="text" name="barcodes[]" placeholder="Barkod" required>
+                <label for="quantity">Miktar:</label>
+                <input type="number" name="quantities[]" placeholder="Miktar" required>
+                <label for="payment_method">Ödeme Yöntemi:</label>
+                <select name="payment_methods[]" required>
+                    <option value="cash">Nakit</option>
+                    <option value="credit_card">Kredi Kartı</option>
+                </select>
+                <button type="button" class="removeSaleItem">Sil</button>
+            `;
+            container.appendChild(newItem);
+
+            // Yeni eklenen sil butonuna olay dinleyicisini ekleyelim
+            newItem.querySelector('.removeSaleItem').addEventListener('click', function() {
+                container.removeChild(newItem);
+            });
+        });
+
+        // Var olan sil butonlarına olay dinleyicisini ekleyelim
+        document.querySelectorAll('.removeSaleItem').forEach(function(button) {
+            button.addEventListener('click', function() {
+                var saleItem = this.closest('.saleItem');
+                saleItem.remove();
+            });
+        });
+
+        // Mesajları pop-up olarak göster
+        var messageContainer = document.getElementById('messageContainer');
+        if (messageContainer) {
+            var alerts = messageContainer.getElementsByClassName('alert');
+            for (var i = 0; i < alerts.length; i++) {
+                alert(alerts[i].innerText);
+            }
+        }
+    });
+</script>
+{% endblock %}
