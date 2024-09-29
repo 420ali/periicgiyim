@@ -1,1 +1,1 @@
-web: gunicorn periicgiyim.wsgi --log-file -
+web: gunicorn periiciyim.wsgi --log-file -
