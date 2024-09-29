@@ -1,0 +1,28 @@
+img{
+  width: 100px;
+}
+
+body {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  margin: 0;
+}
+
+main {
+  flex-grow: 1; 
+}
+
+footer {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  font-size: 16px;
+  background: #394449;
+  width: 100%;
+  text-align: center;
+  padding: 10px 0;
+  margin-top: auto; 
+}
+
+footer p {
+  color: rgb(232, 233, 234);
+}
