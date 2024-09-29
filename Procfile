@@ -1,1 +1,0 @@
-web: gunicorn bung.wsgi --log-file -

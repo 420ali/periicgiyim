@@ -1,8 +1,0 @@
-.table{
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  margin-top: 50px;
-  flex-grow: 1;
-  min-height: 100vh;
-}
