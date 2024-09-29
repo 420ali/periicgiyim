@@ -1,7 +1,7 @@
 from django.db import models
 
 class Item(models.Model):
-    barcode = models.CharField(max_length=100, null=True)
+    barcode = models.CharField(max_length=100, null=True, unique=True)
     name = models.CharField(max_length=100)
     size = models.CharField(max_length=10)
     quantity = models.IntegerField(null=True)

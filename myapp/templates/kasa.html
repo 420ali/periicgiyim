@@ -3,108 +3,275 @@
 {% block content %}
 {% load static %}
 <link rel="stylesheet" href="{% static 'styles/kasa.css' %}">
+<meta name="csrf-token" content="{{ csrf_token }}">
+
 <div class="container">
-    <div class="space"></div>
-    
     <h1>Kasa İşlemleri</h1>
 
-    <div class="space"></div>
-
-    <!-- Satış Ekleme -->
-    <h2>Satış Yap</h2>
+    <!-- Barkod ile Arama -->
+    <h2>Ürün Ara</h2>
+    <input type="text" id="barcodeSearch" placeholder="Barkod girin ve Enter'a basın" autofocus>
+    
+    <!-- Sepet -->
+    <h2>Sepet</h2>
     <form method="post" id="saleForm" action="{% url 'process_sale' %}">
         {% csrf_token %}
-        <div id="salesContainer">
-            <div class="saleItem">
-                <label for="barcode">Barkod:</label>
-                <input type="text" name="barcodes[]" placeholder="Barkod" required>
-                <label for="quantity">Miktar:</label>
-                <input type="number" name="quantities[]" placeholder="Miktar" required>
-                <label for="payment_method">Ödeme Yöntemi:</label>
-                <select name="payment_methods[]">
-                    <option value="cash">Nakit</option>
-                    <option value="credit_card">Kredi Kartı</option>
-                </select>
-                <button type="button" class="removeSaleItem">Sil</button>
-            </div>
-        </div>
-        <button type="button" id="addSaleItem">Başka Ürün Ekle</button>
-        <button type="submit">Satış Yap</button>
+        <table id="cartTable" class="table">
+            <thead>
+                <tr>
+                    <th>Ürün Adı</th>
+                    <th>Fiyat</th>
+                    <th>Miktar</th>
+                    <th>Sil</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- Ürünler burada listelenecek -->
+            </tbody>
+        </table>
+        <button type="button" id="clearCartButton">Sepeti Boşalt</button>
+
+        <!-- Ödeme Seçenekleri ve Satış -->
+        <h2>Ödeme Seçenekleri</h2>
+        <label for="payment_method">Ödeme Yöntemi:</label>
+        <select name="payment_method" id="payment_method" required>
+            <option value="cash">Nakit</option>
+            <option value="credit_card">Kredi Kartı</option>
+        </select>
+
+        <!-- Toplam Bakiye Bölümü -->
+        <h3>Toplam Bakiye: <span id="totalBalance">0</span> TL</h3>
+
+        <button type="submit">Sepeti Onayla</button>
     </form>
-
-    <div class="space"></div>
-
-    <!-- Satışlar kısmı -->
-    <div id="messages">
-        {% if messages %}
-            <div id="messageContainer">
-                {% for message in messages %}
-                    <div class="alert alert-{{ message.tags }}">{{ message }}</div>
-                {% endfor %}
-            </div>
-        {% endif %}
-    </div>
+    <div id="saleResult"></div>
 </div>
 
+
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        var form = document.getElementById('saleForm');
-        var submitButton = form.querySelector('button[type="submit"]');
+document.addEventListener('DOMContentLoaded', function() {
+    var barcodeSearch = document.getElementById('barcodeSearch');
+    var cartTable = document.getElementById('cartTable').getElementsByTagName('tbody')[0];
+    var clearCartButton = document.getElementById('clearCartButton');
+    var saleForm = document.getElementById('saleForm');
+    var totalBalanceSpan = document.getElementById('totalBalance');
 
-        form.addEventListener('submit', function(event) {
-            if (submitButton.dataset.submitted === 'true') {
-                event.preventDefault();
-                return;
-            }
+    // Barkod arama ve sepete ekleme
+    barcodeSearch.addEventListener('input', function(event) {
+        var barcode = barcodeSearch.value.trim();
+        if (barcode !== '') {
+            fetch(`/get-item/${barcode}/`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.error) {
+                        alert(data.error);
+                    } else {
+                        // Stok kontrolü
+                        var quantityInput = 1; // Varsayılan miktar
+                        if (data.quantity <= 0) {
+                            alert('Stokta bu ürün bulunmuyor.');
+                        } else {
+                            var existingRow = Array.from(cartTable.rows).find(row => row.querySelector('.barcode').value === data.barcode);
+                            if (existingRow) {
+                                var existingQuantity = existingRow.querySelector('.quantity');
+                                var newQuantity = parseInt(existingQuantity.value) + quantityInput;
+                                if (newQuantity > data.quantity) {
+                                    alert('Stok miktarını aşıyorsunuz.');
+                                } else {
+                                    existingQuantity.value = newQuantity;
+                                    updateTotalBalance();
+                                }
+                            } else {
+                                var newRow = cartTable.insertRow();
+                                newRow.innerHTML = `
+                                    <td>${data.name}</td>
+                                    <td>${data.sell_price} TL</td>
+                                    <td><input type="number" class="quantity" value="${quantityInput}" min="1" style="width: 60px;"></td>
+                                    <td><button type="button" class="removeProduct">Sil</button></td>
+                                    <input type="hidden" class="barcode" value="${data.barcode}">
+                                `;
 
-            submitButton.dataset.submitted = 'true';
-            submitButton.disabled = true;
+                                // Ürünü silme
+                                newRow.querySelector('.removeProduct').addEventListener('click', function() {
+                                    this.closest('tr').remove();
+                                    updateTotalBalance();
+                                });
 
-            setTimeout(function() {
-                submitButton.disabled = false;
-            }, 1000);
-        });
+                                // Miktar değiştiğinde toplam bakiyeyi güncelle
+                                newRow.querySelector('.quantity').addEventListener('input', function() {
+                                    const barcode = newRow.querySelector('.barcode').value;
+                                    const quantityInput = this;
+                                    const newQuantity = parseInt(quantityInput.value);
 
-        document.getElementById('addSaleItem').addEventListener('click', function() {
-            var container = document.getElementById('salesContainer');
-            var newItem = document.createElement('div');
-            newItem.className = 'saleItem';
-            newItem.innerHTML = `
-                <label for="barcode">Barkod:</label>
-                <input type="text" name="barcodes[]" placeholder="Barkod" required>
-                <label for="quantity">Miktar:</label>
-                <input type="number" name="quantities[]" placeholder="Miktar" required>
-                <label for="payment_method">Ödeme Yöntemi:</label>
-                <select name="payment_methods[]" required>
-                    <option value="cash">Nakit</option>
-                    <option value="credit_card">Kredi Kartı</option>
-                </select>
-                <button type="button" class="removeSaleItem">Sil</button>
-            `;
-            container.appendChild(newItem);
+                                    fetch(`/get-item/${barcode}/`)
+                                        .then(response => response.json())
+                                        .then(data => {
+                                            if (newQuantity > data.quantity) {
+                                                alert(`${data.name} ürününden stokta sadece ${data.quantity} adet var.`);
+                                                quantityInput.value = data.quantity; // Stokta mevcut miktarı güncelle
+                                            }
+                                            updateTotalBalance();
+                                        })
+                                        .catch(error => console.error('Error:', error));
+                                });
 
-            // Yeni eklenen sil butonuna olay dinleyicisini ekleyelim
-            newItem.querySelector('.removeSaleItem').addEventListener('click', function() {
-                container.removeChild(newItem);
-            });
-        });
+                                updateTotalBalance();
+                            }
+                        }
 
-        // Var olan sil butonlarına olay dinleyicisini ekleyelim
-        document.querySelectorAll('.removeSaleItem').forEach(function(button) {
-            button.addEventListener('click', function() {
-                var saleItem = this.closest('.saleItem');
-                saleItem.remove();
-            });
-        });
-
-        // Mesajları pop-up olarak göster
-        var messageContainer = document.getElementById('messageContainer');
-        if (messageContainer) {
-            var alerts = messageContainer.getElementsByClassName('alert');
-            for (var i = 0; i < alerts.length; i++) {
-                alert(alerts[i].innerText);
-            }
+                        barcodeSearch.value = '';
+                    }
+                })
+                .catch(error => console.error('Error:', error));
         }
     });
+
+    // Barkod yapıştırıldığında otomatik olarak sepete ekleme
+    barcodeSearch.addEventListener('paste', function(event) {
+        setTimeout(function() {
+            var barcode = barcodeSearch.value.trim();
+            if (barcode !== '') {
+                addToCart(barcode);
+            }
+        }, 200); // Yapıştırma işleminin tamamlanmasını bekleme süresi
+    });
+
+    // Ürünü sepete ekleme fonksiyonu
+    function addToCart(barcode) {
+        fetch(`/get-item/${barcode}/`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    alert(data.error);
+                } else {
+                    var newRow = cartTable.insertRow();
+                    newRow.innerHTML = `
+                        <td>${data.name}</td>
+                        <td>${data.sell_price} TL</td>
+                        <td><input type="number" class="quantity" value="1" min="1" style="width: 60px;"></td>
+                        <td><button type="button" class="removeProduct">Sil</button></td>
+                        <input type="hidden" class="barcode" value="${data.barcode}">
+                    `;
+
+                    // Ürünü silme
+                    newRow.querySelector('.removeProduct').addEventListener('click', function() {
+                        this.closest('tr').remove();
+                        updateTotalBalance();
+                    });
+
+                    // Miktar değiştiğinde toplam bakiyeyi güncelle
+                    newRow.querySelector('.quantity').addEventListener('input', function() {
+                        const barcode = newRow.querySelector('.barcode').value;
+                        const quantityInput = this;
+                        const newQuantity = parseInt(quantityInput.value);
+
+                        fetch(`/get-item/${barcode}/`)
+                            .then(response => response.json())
+                            .then(data => {
+                                if (newQuantity > data.quantity) {
+                                    alert(`${data.name} ürününden stokta sadece ${data.quantity} adet var.`);
+                                    quantityInput.value = data.quantity; // Stokta mevcut miktarı güncelle
+                                }
+                                updateTotalBalance();
+                            })
+                            .catch(error => console.error('Error:', error));
+                    });
+
+                    barcodeSearch.value = '';
+                    updateTotalBalance();
+                }
+            })
+            .catch(error => console.error('Error:', error));
+    }
+
+    // Sepeti boşalt
+    if (clearCartButton) {
+        clearCartButton.addEventListener('click', function() {
+            cartTable.innerHTML = '';
+            updateTotalBalance();
+        });
+    }
+
+    // Toplam Bakiyeyi Hesapla ve Güncelle
+    function updateTotalBalance() {
+        let total = 0;
+        const rows = cartTable.getElementsByTagName('tr');
+
+        // Her satırdaki fiyatı ve miktarı alıp toplamı hesaplıyoruz
+        for (let i = 0; i < rows.length; i++) {
+            const priceCell = rows[i].getElementsByTagName('td')[1]; // Fiyat sütunu
+            const quantityCell = rows[i].getElementsByTagName('td')[2].querySelector('.quantity'); // Miktar sütunu
+            const price = parseFloat(priceCell.textContent) || 0;
+            let quantity = parseInt(quantityCell.value) || 1;
+
+            total += price * quantity; // Toplamı güncelle
+        }
+        totalBalanceSpan.textContent = total.toFixed(2); // 2 ondalık hane ile güncelle
+    }
+
+    // Satış işlemini tek seferlik yapabilmek için
+    if (saleForm) {
+        saleForm.addEventListener('submit', function(event) {
+            event.preventDefault(); // Varsayılan form gönderimini engelle
+
+            // Sepetteki ürünleri form verilerine ekle
+            var rows = cartTable.getElementsByTagName('tr');
+            var barcodes = [];
+            var quantities = [];
+            
+            for (var i = 0; i < rows.length; i++) {
+                var cells = rows[i].getElementsByTagName('td');
+                var barcode = rows[i].querySelector('.barcode').value; // Gizli barkod inputunu alıyoruz
+                var quantity = cells[2].querySelector('.quantity').value;
+                barcodes.push(barcode);
+                quantities.push(quantity);
+            }
+
+            // Form verilerini ekle
+            var formData = new FormData();
+            barcodes.forEach(function(barcode, index) {
+                formData.append('barcodes[]', barcode);
+                formData.append('quantities[]', quantities[index]);
+            });
+            
+            // Ödeme yöntemini ekle
+            var paymentMethod = document.getElementById('payment_method').value;
+            formData.append('payment_method', paymentMethod);
+
+            // AJAX ile formu gönder
+            fetch(saleForm.action, {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                }
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok: ' + response.statusText);
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.success) {
+                    // Başarılı yanıt durumunda sayfayı yönlendir
+                    window.location.href = '/kasa'; // "kasa" sayfasına yönlendir
+                } else {
+                    // Hata durumunu burada yönetin
+                    console.error('Error occurred:', data.error);
+                    alert(data.error);  // Kullanıcıya hata mesajını göster
+                }
+            })
+            .catch(error => {
+                console.error('There was a problem with the fetch operation:', error);
+                alert('Bir hata oluştu. Lütfen tekrar deneyin.');  // Genel hata mesajı
+            });
+
+        });
+    }
+});
+
 </script>
 {% endblock %}
+

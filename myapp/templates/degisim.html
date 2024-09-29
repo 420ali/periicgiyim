@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block content %}
+{% load static %}
+<link rel="stylesheet" href="{% static 'styles/degisim.css' %}">
+
+<div class="container">
+  <h2>Ürün Değişim Sayfası</h2>
+
+  <form method="post">
+      {% csrf_token %}
+      {{ form.as_p }}
+      <button type="submit">Değişim Yap</button>
+  </form>
+
+  {% if messages %}
+      <ul>
+          {% for message in messages %}
+              <li class="{{ message.tags }}">{{ message }}</li>
+          {% endfor %}
+      </ul>
+  {% endif %}
+</div>
+
+{% endblock %}

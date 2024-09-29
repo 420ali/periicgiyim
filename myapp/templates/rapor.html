@@ -6,15 +6,29 @@
 <div class="reports">
 
     <div class="table1">
+        <h2>Günlük Rapor</h2>
+        <hr>
+        <p>Toplam Satış: {{ total_sales_today }} TL</p>
+        <hr>
+        <p>Net Kar: {{ net_profit_today }} TL</p>
+        <hr>
+        <p>Nakit Satış: {{ total_cash_sales_today }} TL</p>
+        <hr>
+        <p>Kart Satış: {{ total_credit_sales_today }} TL</p>
+        <hr>
+        <p>Satılan Ürün Adedi: {{ total_items_sold_today }}</p>
+    </div>
+
+    <div class="table1">
         <h2>Aylık Rapor</h2>
         <hr>
         <p>Toplam Satış: {{ total_sales }} TL</p>
         <hr>
         <p>Net Kar: {{ net_profit }} TL</p>
         <hr>
-        <p>Toplam Nakit Satış: {{ total_cash_sales }} TL</p>
+        <p>Nakit Satış: {{ total_cash_sales }} TL</p>
         <hr>
-        <p>Toplam Kart Satış: {{ total_credit_sales }} TL</p>
+        <p>Kart Satış: {{ total_credit_sales }} TL</p>
         <hr>
         <p>Satılan Ürün Adedi: {{ total_items_sold }}</p>
     </div>
@@ -26,9 +40,9 @@
         <hr>
         <p>Net Kar: {{ net_profit_3_months }} TL</p>
         <hr>
-        <p>Toplam Nakit Satış: {{ total_cash_sales_3_months }} TL</p>
+        <p>Nakit Satış: {{ total_cash_sales_3_months }} TL</p>
         <hr>
-        <p>Toplam Kart Satış: {{ total_credit_sales_3_months }} TL</p>
+        <p>Kart Satış: {{ total_credit_sales_3_months }} TL</p>
         <hr>
         <p>Satılan Ürün Adedi: {{ total_items_sold_3_months }}</p>
     </div>
@@ -40,13 +54,29 @@
         <hr>
         <p>Net Kar: {{ net_profit_6_months }} TL</p>
         <hr>
-        <p>Toplam Nakit Satış: {{ total_cash_sales_6_months }} TL</p>
+        <p>Nakit Satış: {{ total_cash_sales_6_months }} TL</p>
         <hr>
-        <p>Toplam Kart Satış: {{ total_credit_sales_6_months }} TL</p>
+        <p>Kart Satış: {{ total_credit_sales_6_months }} TL</p>
         <hr>
         <p>Satılan Ürün Adedi: {{ total_items_sold_6_months }}</p>
     </div>
+
+    <div class="table1">
+        <h2>1 Yıllık Rapor</h2>
+        <hr>
+        <p>Toplam Satış: {{ total_sales_year }} TL</p>
+        <hr>
+        <p>Net Kar: {{ net_profit_year }} TL</p>
+        <hr>
+        <p>Nakit Satış: {{ total_cash_sales_year }} TL</p>
+        <hr>
+        <p>Kart Satış: {{ total_credit_sales_year }} TL</p>
+        <hr>
+        <p>Satılan Ürün Adedi: {{ total_items_sold_year }}</p>
+    </div>    
+
 </div>
+
 
 <div class="sales">
     <h2 class="header">Satışlar</h2>
